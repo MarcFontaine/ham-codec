@@ -7,7 +7,7 @@ import Data.Ratio
 import qualified Data.Array as Array
 import Data.Array (Array)
 import Data.Tuple (swap)
-import Codec.JT65Extern
+import Codec.PackJTExtern
 
 type Frequency = Rational
 

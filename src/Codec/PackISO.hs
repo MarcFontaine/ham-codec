@@ -15,23 +15,25 @@ import Control.Monad
 import qualified Data.Map as Map
 import Data.Word
 
--- | ISO a b is a isomorphism between a b.
-type ISO a b = (a -> Maybe b, b -> Maybe a)
+type ES a = Either String a
 
-fwd :: ISO a b -> (a -> Maybe b)
+-- | ISO a b is a isomorphism between a b.
+type ISO a b = (a -> ES b, b -> ES a)
+
+fwd :: ISO a b -> (a -> ES b)
 fwd = fst
 
-rev :: ISO a b -> (b -> Maybe a)
+rev :: ISO a b -> (b -> ES a)
 rev = snd
 
-mkIso :: (a -> Maybe b) -> (b -> Maybe a) -> ISO a b
+mkIso :: (a -> ES b) -> (b -> ES a) -> ISO a b
 mkIso x y = (x,y)
 
 mkIsoTotal :: (a -> b) -> (b -> a) -> ISO a b
 mkIsoTotal x y = (return . x, return . y)
 
-err :: String -> Maybe x
-err _msg = Nothing
+err :: String -> ES x
+err msg = Left msg
 
 -- | Identity isomorphism.
 idIso :: ISO a a
@@ -64,8 +66,12 @@ chain (ff, fb) (gf, gb)
 charIso :: [Char] -> ISO Word32 Char
 charIso chars = mkIso fw bw
   where
-    fw x = Map.lookup x fwMap
-    bw x = Map.lookup x bwMap
+    fw x = case Map.lookup x fwMap of
+      Nothing -> err $ show ("charIso  fw bad char",x)
+      Just v -> return v
+    bw x = case Map.lookup x bwMap of
+      Nothing -> err $ show ("charIso  rev bad code",x)
+      Just v -> return v                   
     fwMap = Map.fromList $ zip [0..] chars
     bwMap = Map.fromList $ zip chars [0..]
 
@@ -89,17 +95,6 @@ eitherIso (fl,bl) (fr,br) = mkIso fp bp
     bp (Left l) = bl l >>= return . Left
     bp (Right r) = br r >>= return . Right
 
-pointed :: (Eq a, Eq b) => a -> b -> ISO a c -> ISO a (Either c b)
-pointed code val (fw, bw) = (fp, bp)
-  where
-    fp x = if x == code
-              then return $ Right val
-              else fw x >>= return . Left
-    bp (Left x) = bw x
-    bp (Right x) = if x==val
-                      then return code
-                      else Nothing       
-
 tripple :: ISO a b -> ISO c d -> ISO e f -> ISO (a,c,e) (b,d,f)
 tripple (f1,b1) (f2,b2) (f3,b3) = (fp,bp)
   where
@@ -115,16 +110,18 @@ tripple (f1,b1) (f2,b2) (f3,b3) = (fp,bp)
       return (x,y,z)
 
 modDiv :: Word32 -> ISO Word32 (Word32, Word32)
-modDiv n = (fw,ba)
+modDiv n = (fw,bw)
   where
     fw x = return (x `mod` n, x `div` n)
-    ba (a,b) = if a < n then return (n * b + a) else Nothing
+    bw (a,b) = if a < n
+       then return (n * b + a)
+       else err $ show ("modDiv rev out of Range",a)
 
 concChar :: ISO (Char,String) String
 concChar = (fw,bw)
   where
     fw (c,r) = return (c:r)
-    bw [] = Nothing
+    bw [] = err "concChar rew empty list"
     bw (c:r) = return (c,r)
 
 modDivChar :: Word32 -> ISO Word32 Char
@@ -165,7 +162,7 @@ data Switch a i b where
           -> Switch a (Either i c)  b
   Else :: (ISO a c , c -> b) -> Switch a c b
 
-switchForward :: Switch a i b -> a -> Maybe b
+switchForward :: Switch a i b -> a -> ES b
 switchForward sw x = case sw of
   Else (iso, inj) -> fwd iso x >>= return . inj
   Case (cond , iso , inj) rest
@@ -173,7 +170,7 @@ switchForward sw x = case sw of
           then fwd iso x >>= return . inj
           else switchForward rest x
 
-switchReverse :: Switch a i b -> i -> Maybe a
+switchReverse :: Switch a i b -> i -> ES a
 switchReverse sw x = case sw of
   Else (iso, _ ) -> rev iso x
   Case (cond , iso , _ ) rest -> case x of

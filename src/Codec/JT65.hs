@@ -13,7 +13,7 @@ type Frequency = Rational
 
 jt65AEncode :: String -> IO [Frequency]
 jt65AEncode input = do
-  symbols <- callJT65Code input
+  (_,symbols) <- callJT65Code input
   return $ encodeSymbols symbols
 
 encodeSymbols :: [Word8] -> [Frequency]

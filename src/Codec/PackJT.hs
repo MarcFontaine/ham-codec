@@ -161,10 +161,10 @@ block1 = switch mkBlock1 cases
   where
     cases =
       ( Case ((<= nBase    ) , callsign , CS)
-      $ Case ((== nBase + 1) , point 262177561 () , \() -> CQ)
-      $ Case ((== nBase + 2) , point 262177562 () , \() -> QRZ)
+      $ casePoint (nBase + 1) CQ
+      $ casePoint (nBase + 2) QRZ
       $ Case (between (nBase + 3) 267796944, freqIso , CQFreq)
-      $ Case ((== 267796945) , point 267796945 () , \() -> DE)
+      $ casePoint 267796945 DE
       $ Else (idIso, Block1Other)
       )
     mkBlock1 b = case b of
@@ -184,9 +184,9 @@ locator = switch mkBlock3 cases
       ( Case ((<= ngBase)                          , idIso , Grid)
       $ Case (between (ngBase + 1) (ngBase + 31)   , idIso , Report)
       $ Case (between (ngBase + 32) (ngBase + 61)  , idIso , ReportR)
-      $ Case ((== ngBase + 62) , point (ngBase + 62) () , \() -> RO)
-      $ Case ((== ngBase + 63) , point (ngBase + 63) () , \() -> RRR)
-      $ Case ((== ngBase + 64) , point (ngBase + 64) () , \() -> R73)
+      $ casePoint (ngBase + 62) RO
+      $ casePoint (ngBase + 63) RRR
+      $ casePoint (ngBase + 64) R73
       $ Else (idIso, Block3Other)
       )
     mkBlock3 :: Block3 -> (Either (Either (Either (Either (Either (Either

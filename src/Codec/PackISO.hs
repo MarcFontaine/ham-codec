@@ -40,7 +40,7 @@ idIso :: ISO a a
 idIso = mkIso return return
 
 point :: (Eq a, Eq b) => a -> b -> ISO a b
-point code val =mkIso fp bp
+point code val = mkIso fp bp
   where
     fp x = if x == code then return val  else err "point fwd"
     bp x = if x ==  val then return code else err "point rev"
@@ -182,3 +182,8 @@ switchReverse sw x = case sw of
 switch :: (b -> i) ->  Switch a i b -> ISO a b
 switch f sw
   = mkIso (switchForward sw) (switchReverse sw . f)
+
+casePoint
+  :: Eq a => a -> b -> Switch a i b -> Switch a (Either i ()) b
+casePoint a p
+  = Case ((==) a  , point a () , \() -> p) 

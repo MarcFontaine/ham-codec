@@ -1,3 +1,13 @@
+----------------------------------------------------------------------------
+-- |
+-- Module      :  Codec.JT65
+-- Copyright   :  (c) Marc Fontaine 2017
+-- License     :  BSD3
+-- 
+-- Maintainer  :  Marc.Fontaine@gmx.de
+-- Stability   :  experimental
+-- Portability :  GHC-only
+
 module Codec.JT65
 where
 import Data.Time
@@ -11,11 +21,13 @@ import Codec.PackJTExtern
 
 type Frequency = Rational
 
-jt65AEncode :: String -> IO [Frequency]
-jt65AEncode input = do
+jt65AEncodeExtern :: String -> IO [Frequency]
+jt65AEncodeExtern input = do
   (_,symbols) <- callJT65Code input
   return $ encodeSymbols symbols
 
+jt65AEncode :: String -> IO [Frequency]
+jt65AEncode= jt65AEncodeExtern
 encodeSymbols :: [Word8] -> [Frequency]
 encodeSymbols l
   = map (toFrequency A) $ mixinSync l

@@ -19,9 +19,9 @@ newtype PlainText = PlainText {unPlainText:: String}
 newtype CallSign = CallSign {unCallsign:: String}
   deriving (Show,Eq,Ord)
 
-type PackedMsg = (Word8,Word8,Word8,Word8,Word8,Word8
+type PackedMessage
+  = (Word8,Word8,Word8,Word8,Word8,Word8
                  ,Word8,Word8,Word8,Word8,Word8,Word8)
-
 data Message
   = PlainTextMessage PlainText
   | Blocks Block1 Block1 Block3
@@ -45,3 +45,14 @@ data Block3
   | R73
   | Block3Other Word32
   deriving (Show,Eq,Ord)
+
+packedMessageToList :: PackedMessage -> [Word8]
+packedMessageToList
+  (b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11)
+   = [b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11]
+
+packedMessageFromList :: [Word8] -> Maybe PackedMessage
+packedMessageFromList
+  [b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11]
+   = Just (b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11)
+packedMessageFromList _ = Nothing

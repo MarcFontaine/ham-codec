@@ -30,20 +30,33 @@ import Data.Bits
 
 import Codec.PackISO
 import Codec.MsgJT
-import Codec.PackJTExtern (callJT65Code)
+
+numChar:: [Char]
+numChar = ['0'..'9']
+alphaChar :: [Char]
+alphaChar = ['A'..'Z']
+alphaBlankChar :: [Char]
+alphaBlankChar = ['A'..'Z'] ++ " "
+alphaNumChar :: [Char]
+alphaNumChar = ['0'..'9'] ++ ['A'..'Z']
+alphaNumBlankChar :: [Char]
+alphaNumBlankChar =  ['0'..'9'] ++ ['A'..'Z'] ++ " "
+plainTextChar :: [Char]
+plainTextChar = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ +-./?"
 
 isoNum :: ISO Word32 Char
-isoNum = charIso ['0'..'9']
+isoNum = charIso numChar
 isoApha :: ISO Word32 Char
-isoApha = charIso ['A'..'Z']
+isoApha = charIso alphaChar
 isoAlphaBlank :: ISO Word32 Char
-isoAlphaBlank = charIso $ ['A'..'Z'] ++ " "
+isoAlphaBlank = charIso alphaBlankChar
 isoAlphaNum :: ISO Word32 Char
-isoAlphaNum = charIso $ ['0'..'9'] ++ ['A'..'Z']
+isoAlphaNum = charIso alphaNumChar
 isoAlphaNumBlank :: ISO Word32 Char
-isoAlphaNumBlank =  charIso $ ['0'..'9'] ++ ['A'..'Z'] ++ " "
+isoAlphaNumBlank =  charIso alphaNumBlankChar
 isoPlainTextChar :: ISO Word32 Char
-isoPlainTextChar = charIso "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ +-./?"
+isoPlainTextChar = charIso plainTextChar
+
 
 checkPlainTextBit
   :: ISO (Word32,Word32,Word32)
@@ -79,7 +92,7 @@ moveBits = (fw, bw)
                    && (not $ testBit nc2 31)
                    && (ng .&. 0xfffe0000 == 0)
 
-pack12Words :: ISO PackedMsg (Word32,Word32,Word32)
+pack12Words :: ISO PackedMessage (Word32,Word32,Word32)
 pack12Words
   = mkIso (return . fw) bw
   where
@@ -137,8 +150,8 @@ plainText
          $ modDivChar 42 isoPlainTextChar nil
          ) <.>  reverseIso
 
-callsign :: ISO Word32 CallSign
-callsign =
+callSign :: ISO Word32 CallSign
+callSign =
   ( modDivChar 27 isoAlphaBlank
   $ modDivChar 27 isoAlphaBlank
   $ modDivChar 27 isoAlphaBlank
@@ -155,15 +168,17 @@ callsign =
 
 between :: Word32 -> Word32 -> Word32 -> Bool
 between a b x = a <= x && x <= b               
-        
+
+--mapRange :: Ord a => a -> a ->  
+
 block1 :: ISO Word32 Block1
 block1 = switch mkBlock1 cases
   where
     cases =
-      ( Case ((<= nBase    ) , callsign , CS)
+      ( Case ((<= nBase    ) , callSign , CS)
       $ casePoint (nBase + 1) CQ
       $ casePoint (nBase + 2) QRZ
-      $ Case (between (nBase + 3) 267796944, freqIso , CQFreq)
+      $ Case (between (nBase + 3) 267796944, shiftVal $ nBase +3 , CQFreq)
       $ casePoint 267796945 DE
       $ Else (idIso, Block1Other)
       )
@@ -175,15 +190,18 @@ block1 = switch mkBlock1 cases
       DE -> injectCase4 $ Right ()
       Block1Other uncoded -> injectCase4 $ Left uncoded
     nBase = 37*36*10*27*27*27
-    freqIso = mkIso (\x -> return $ x - nBase -3) (\x -> return $ x + nBase + 3)
 
+shiftVal :: Num a => a -> ISO a a
+shiftVal offset
+  = mkIsoTotal (\x -> x -offset) (\x -> x + offset)
+    
 locator :: ISO Word32 Block3
 locator = switch mkBlock3 cases
   where
     cases = 
-      ( Case ((<= ngBase)                          , idIso , Grid)
-      $ Case (between (ngBase + 1) (ngBase + 31)   , idIso , Report)
-      $ Case (between (ngBase + 32) (ngBase + 61)  , idIso , ReportR)
+      ( Case ((<= ngBase)                        , idIso , Grid)
+      $ Case (between (ngBase + 1) (ngBase + 31) , shiftVal $ ngBase, Report)
+      $ Case (between (ngBase + 32) (ngBase + 61), shiftVal $ ngBase+31, ReportR)
       $ casePoint (ngBase + 62) RO
       $ casePoint (ngBase + 63) RRR
       $ casePoint (ngBase + 64) R73
@@ -200,8 +218,9 @@ locator = switch mkBlock3 cases
       R73       -> injectCase5 $ Right ()
       Block3Other uncoded -> injectCase5 $ Left uncoded
     ngBase = 180*180
-     
-message :: ISO PackedMsg Message
+    
+             
+message :: ISO PackedMessage Message
 message
   = pack12Words <.> checkPlainTextBit <.> eitherIso stdMsg plainText
     <.> mkIsoTotal toMsg fromMsg
@@ -215,9 +234,3 @@ message
    fromMsg :: Message -> (Either (Block1, Block1, Block3) PlainText)
    fromMsg (Blocks b1 b2 b3) = Left (b1,b2,b3)
    fromMsg (PlainTextMessage t) = Right t
-   
-testDecode :: String -> IO PackedMsg
-testDecode str = do
-  (sc,_) <- callJT65Code str
-  print $ fwd message sc
-  return sc

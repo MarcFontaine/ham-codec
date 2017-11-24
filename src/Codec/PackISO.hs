@@ -26,6 +26,12 @@ fwd = fst
 rev :: ISO a b -> (b -> ES a)
 rev = snd
 
+roundTripFwdRev :: ISO a b -> a -> ES a
+roundTripFwdRev iso a = fwd iso a >>= rev iso
+
+roundTripRevFwd :: ISO a b -> b -> ES b
+roundTripRevFwd iso b = rev iso b >>= fwd iso
+
 mkIso :: (a -> ES b) -> (b -> ES a) -> ISO a b
 mkIso x y = (x,y)
 

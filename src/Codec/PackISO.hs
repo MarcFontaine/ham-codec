@@ -38,8 +38,11 @@ mkIso x y = (x,y)
 mkIsoTotal :: (a -> b) -> (b -> a) -> ISO a b
 mkIsoTotal x y = (return . x, return . y)
 
-err :: String -> ES x
-err msg = Left msg
+fwdError :: String -> ES x
+fwdError msg = Left msg
+
+revError :: String -> ES x
+revError msg = Left msg
 
 -- | Identity isomorphism.
 idIso :: ISO a a
@@ -48,16 +51,18 @@ idIso = mkIso return return
 point :: (Eq a, Eq b) => a -> b -> ISO a b
 point code val = mkIso fp bp
   where
-    fp x = if x == code then return val  else err "point fwd"
-    bp x = if x ==  val then return code else err "point rev"
+    fp x = if x == code then return val  else fwdError "point fwd"
+    bp x = if x ==  val then return code else revError "point rev"
 
 nil :: ISO Word32 [a]
-nil = (\x -> if x==0 then return [] else err "nil not 0"
-      ,\[] -> return 0)
+nil = mkIso
+  (\x -> if x==0 then return [] else fwdError "nil not 0")
+  (\[] -> return 0)
 
 unit :: ISO Word32 ()
-unit = (\x -> if x==0 then return () else err "unit not 0"
-      ,\() -> return 0)
+unit = mkIso
+  (\x -> if x==0 then return () else fwdError "unit not 0")
+  (\() -> return 0)
 
 -- | Chain two isomorphism
 chain :: ISO a b -> ISO b c -> ISO a c
@@ -73,10 +78,10 @@ charIso :: [Char] -> ISO Word32 Char
 charIso chars = mkIso fw bw
   where
     fw x = case Map.lookup x fwMap of
-      Nothing -> err $ show ("charIso  fw bad char",x)
+      Nothing -> fwdError $ show ("charIso  fw bad char",x)
       Just v -> return v
     bw x = case Map.lookup x bwMap of
-      Nothing -> err $ show ("charIso  rev bad code",x)
+      Nothing -> revError $ show ("charIso  rev bad code",x)
       Just v -> return v                   
     fwMap = Map.fromList $ zip [0..] chars
     bwMap = Map.fromList $ zip chars [0..]
@@ -121,13 +126,13 @@ modDiv n = (fw,bw)
     fw x = return (x `mod` n, x `div` n)
     bw (a,b) = if a < n
        then return (n * b + a)
-       else err $ show ("modDiv rev out of Range",a)
+       else revError $ show ("modDiv rev out of Range",a)
 
 concChar :: ISO (Char,String) String
 concChar = (fw,bw)
   where
     fw (c,r) = return (c:r)
-    bw [] = err "concChar rew empty list"
+    bw [] = revError "concChar rew empty list"
     bw (c:r) = return (c,r)
 
 modDivChar :: Word32 -> ISO Word32 Char
@@ -183,7 +188,7 @@ switchReverse sw x = case sw of
     Left x' -> switchReverse rest x'
     Right v -> do
       a <- rev iso v
-      if cond a then return a else err "rev switchReverse"
+      if cond a then return a else revError "rev switchReverse"
 
 switch :: (b -> i) ->  Switch a i b -> ISO a b
 switch f sw

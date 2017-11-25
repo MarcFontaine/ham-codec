@@ -76,7 +76,7 @@ moveBits = (fw, bw)
     fw (nc1,nc2,ng)
       = if save
            then return (nc1 `div` 2, nc2 `div` 2, ng + b1 + b2)
-           else err "bitSwap fw"
+           else fwdError "bitSwap fw"
         where
           b1 = if testBit nc1 0 then 0x08000 else 0
           b2 = if testBit nc2 0 then 0x10000 else 0
@@ -84,7 +84,7 @@ moveBits = (fw, bw)
     bw (nc1,nc2,ng)
        = if save
             then return (2 * nc1 + b1, 2 * nc2 + b2, ng .&. 0x7fff)
-            else err "bitswap rev"
+            else revError "bitswap rev"
          where  
            b1 = if testBit ng 15 then 1 else 0
            b2 = if testBit ng 16 then 1 else 0
@@ -102,7 +102,7 @@ pack12Words
       ,sl (b9 .&. 15) 12 + sl b10 6 + fromIntegral b11
       )
     bw (nc1,nc2,ng)
-      = if not save then err (show ("pack12Words bw",(nc1,nc2,ng)))
+      = if not save then revError (show ("pack12Words bw",(nc1,nc2,ng)))
         else return $                                 
       ( sr nc1 22
       , sr nc1 16
@@ -127,10 +127,10 @@ plainTextSplit = (fw,bw)
   where
     fw ([c0,c1,c2,c3,c4],[c5,c6,c7,c8,c9],[c10,c11,c12])
          = return $ PlainText [c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12]
-    fw _ = err "plainTextSplit fw"
+    fw _ = fwdError "plainTextSplit fw"
     bw (PlainText [c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12])
       = return ([c0,c1,c2,c3,c4],[c5,c6,c7,c8,c9],[c10,c11,c12])
-    bw _ = err "plainTextSplit rw"
+    bw _ = revError "plainTextSplit rw"
 
 plainText :: ISO (Word32, Word32, Word32) PlainText
 plainText
@@ -176,7 +176,8 @@ block1 = switch mkBlock1 cases
   where
     cases =
       (
-        casePoint 90328121 CQDX
+        casePoint 90328121 CQDX                   -- equals PlainText " CQ9DX"
+      $ Case (between 258024473 258043373, hackCQ , CQ . Just)--overlapps Plaitext
       $ Case ((<= nBase    ) , callSign , CS)
       $ casePoint (nBase + 1) (CQ Nothing)
       $ casePoint (nBase + 2) (QRZ Nothing)
@@ -186,13 +187,17 @@ block1 = switch mkBlock1 cases
       )
     mkBlock1 b = case b of
       CQDX            -> injectCase0 $ Right ()
-      CS cs           -> injectCase1 $ Right cs
-      (CQ Nothing)    -> injectCase2 $ Right ()
-      (QRZ Nothing)   -> injectCase3 $ Right ()
-      CQFreq freq     -> injectCase4 $ Right freq
-      (DE Nothing)    -> injectCase5 $ Right ()
-      Block1Other uncoded -> injectCase5 $ Left uncoded
+      (CQ  (Just str))-> injectCase1  $ Right str
+      CS cs           -> injectCase2 $ Right cs
+      (CQ Nothing)    -> injectCase3 $ Right ()
+      (QRZ Nothing)   -> injectCase4 $ Right ()
+      CQFreq freq     -> injectCase5 $ Right freq
+      (DE Nothing)    -> injectCase6 $ Right ()
+      Block1Other uncoded -> injectCase6 $ Left uncoded
     nBase = 37*36*10*27*27*27
+    hackCQ = callSign <.> mkIsoTotal fwdE9 revE9
+    fwdE9 (CallSign  (' ':'E':'9':a:b:' ':[])) = [a,b]
+    revE9 [a,b] = (CallSign  $ ' ':'E':'9':a:b:' ':[])
 
 shiftVal :: Num a => a -> ISO a a
 shiftVal offset

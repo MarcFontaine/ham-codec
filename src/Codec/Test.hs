@@ -1,9 +1,7 @@
 {-# Language TemplateHaskell #-}
 module Codec.Test
 where
-import Data.Word
 import Data.Maybe
-import Control.Monad
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Distribution.TestSuite.QuickCheck
@@ -21,7 +19,7 @@ instance Arbitrary PlainText
 
 instance Arbitrary CallSign
   where
-    arbitrary = fmap CallSign $ mapM elements
+    arbitrary = fmap CallSign $ flip suchThat (isNotE9) $ mapM elements
      [ alphaNumBlankChar
      , alphaNumChar
      , numChar
@@ -29,7 +27,12 @@ instance Arbitrary CallSign
      , alphaBlankChar
      , alphaBlankChar
      ]
-     
+      where
+        isNotE9 str = case str of
+          ('E':'9':_) -> False
+          (' ':'E':'9':_) -> False      
+          _ -> True
+      
 instance Arbitrary Message
   where
     arbitrary = frequency [
@@ -44,6 +47,7 @@ instance Arbitrary Block1
       (1 , return CQDX)
      ,(10, fmap CS $ arbitrary)
      ,(1 , return $ CQ Nothing)
+     ,(1 , fmap (CQ . Just) $ vectorOf 2 $ choose ('A','Z') )      
      ,(1 , return $ QRZ Nothing)
      ,(1 , fmap CQFreq $ choose (0,999))
      ,(1 , return $ DE Nothing)
@@ -60,40 +64,52 @@ instance Arbitrary Block3
      ,(  1, return R73)
      ]
 
+isTotalIso :: Eq a => ISO a b -> a -> Bool
 isTotalIso iso m
   = case roundTripFwdRev iso m of
       Right m' -> m' == m
       Left _err -> False
 
+isTotalIsoRev :: Eq b => ISO a b -> b -> Bool
 isTotalIsoRev iso m
   = case roundTripRevFwd iso m of
       Right m' -> m' == m
       Left _err -> False
-    
+
+prop_pack12Words :: Property
 prop_pack12Words
   = forAll genPackedMessage $ isTotalIso pack12Words
-  
+
+prop_plainTextSplit :: PlainText -> Bool    
 prop_plainTextSplit= isTotalIsoRev plainTextSplit
+prop_plainText :: PlainText -> Bool
 prop_plainText= isTotalIsoRev plainText
+prop_callSign :: CallSign -> Bool
 prop_callSign = isTotalIsoRev callSign
+prop_block1 :: Block1 -> Bool
 prop_block1   = isTotalIsoRev block1
+prop_locator :: Block3 -> Bool
 prop_locator  = isTotalIsoRev locator
+prop_message :: Property
 prop_message  = withMaxSuccess 10000 $ isTotalIsoRev message
 
+genPackedMessage :: Gen PackedMessage
 genPackedMessage
   = fmap (fromJust . packedMessageFromList) $ vectorOf 12 $ choose (0,63) 
 
+prop_roundTripMessage :: Property
 prop_roundTripMessage
   = forAll genPackedMessage
       $ \m -> case roundTripFwdRev message m of
         Right m' -> m'== m
-        Left err -> True
+        Left _err -> True
 
 testDecode :: String -> IO PackedMessage
 testDecode str = do
   (sc,_) <- callJT65Code str
   print $ fwd message sc
   return sc
+  
 
 tests :: IO [Test]
 tests = return [
@@ -108,5 +124,7 @@ tests = return [
 
 return []
 runTests = $quickCheckAll
+runTests :: IO Bool
 
+runTestsV :: IO Bool
 runTestsV = $verboseCheckAll

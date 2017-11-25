@@ -1,5 +1,5 @@
 {-# Language TemplateHaskell #-}
-module Codec.Test (tests)
+module Codec.Test
 where
 import Data.Word
 import Data.Maybe
@@ -40,12 +40,13 @@ instance Arbitrary Message
 instance Arbitrary Block1
   where
     arbitrary = frequency
-     [(10, fmap CS $ arbitrary)
-     ,(1 , return CQ)
-     ,(1 , return QRZ)
---  | CQFreq Word32
-     ,(1 , return DE)
---  | Block1Other Word32
+     [
+      (1 , return CQDX)
+     ,(10, fmap CS $ arbitrary)
+     ,(1 , return $ CQ Nothing)
+     ,(1 , return $ QRZ Nothing)
+     ,(1 , fmap CQFreq $ choose (0,999))
+     ,(1 , return $ DE Nothing)
      ]
 
 instance Arbitrary Block3

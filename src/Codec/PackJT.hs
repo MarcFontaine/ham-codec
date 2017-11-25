@@ -175,20 +175,23 @@ block1 :: ISO Word32 Block1
 block1 = switch mkBlock1 cases
   where
     cases =
-      ( Case ((<= nBase    ) , callSign , CS)
-      $ casePoint (nBase + 1) CQ
-      $ casePoint (nBase + 2) QRZ
+      (
+        casePoint 90328121 CQDX
+      $ Case ((<= nBase    ) , callSign , CS)
+      $ casePoint (nBase + 1) (CQ Nothing)
+      $ casePoint (nBase + 2) (QRZ Nothing)
       $ Case (between (nBase + 3) 267796944, shiftVal $ nBase +3 , CQFreq)
-      $ casePoint 267796945 DE
+      $ casePoint 267796945 (DE Nothing)
       $ Else (idIso, Block1Other)
       )
     mkBlock1 b = case b of
-      CS cs -> injectCase0 $ Right cs
-      CQ    -> injectCase1 $ Right ()
-      QRZ   -> injectCase2 $ Right ()
-      CQFreq freq -> injectCase3 $ Right freq
-      DE -> injectCase4 $ Right ()
-      Block1Other uncoded -> injectCase4 $ Left uncoded
+      CQDX            -> injectCase0 $ Right ()
+      CS cs           -> injectCase1 $ Right cs
+      (CQ Nothing)    -> injectCase2 $ Right ()
+      (QRZ Nothing)   -> injectCase3 $ Right ()
+      CQFreq freq     -> injectCase4 $ Right freq
+      (DE Nothing)    -> injectCase5 $ Right ()
+      Block1Other uncoded -> injectCase5 $ Left uncoded
     nBase = 37*36*10*27*27*27
 
 shiftVal :: Num a => a -> ISO a a

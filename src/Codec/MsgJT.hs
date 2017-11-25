@@ -28,11 +28,13 @@ data Message
   deriving (Show,Eq,Ord)
     
 data Block1
-  = CS CallSign
-  | CQ
-  | QRZ
+  =
+    CQDX
+  | CS CallSign
+  | CQ (Maybe String)
+  | QRZ (Maybe String)
   | CQFreq Word32
-  | DE
+  | DE (Maybe String)
   | Block1Other Word32
   deriving (Show,Eq,Ord)
 

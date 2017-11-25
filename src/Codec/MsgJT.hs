@@ -31,10 +31,17 @@ data Block1
   =
     CQDX
   | CS CallSign
-  | CQ (Maybe String)
-  | QRZ (Maybe String)
+  | CQ    
+  | CQE9 String
+  | CQPrefix String
+  | CQSuffix String
+  | QRZ
+  | QRZPrefix String
+  | QRZSuffix String
   | CQFreq Word32
-  | DE (Maybe String)
+  | DE
+  | DEPrefix String
+  | DESuffix String   
   | Block1Other Word32
   deriving (Show,Eq,Ord)
 

@@ -169,19 +169,17 @@ callSign =
 between :: Word32 -> Word32 -> Word32 -> Bool
 between a b x = a <= x && x <= b               
 
---mapRange :: Ord a => a -> a ->  
-
 block1 :: ISO Word32 Block1
 block1 = switch mkBlock1 cases
   where
     cases =
       (
         casePoint 90328121 CQDX                   -- equals PlainText " CQ9DX"
-      $ Case (between 258024473 258043373, hackCQ , CQE9)--overlapps Plaitext
+      $ Case (between 258024473 258043373, hackCQ , CQE9)--overlapps Plaintext
       $ Case ((<= nBase    ) , callSign , CS)
       $ casePoint (nBase + 1) CQ
       $ casePoint (nBase + 2) QRZ
-      $ Case (between (nBase + 3) 267796944, shiftVal $ nBase +3 , CQFreq)
+      $ Case (between (nBase + 3) (nBase + 1003), shiftVal $ nBase +3 , CQFreq)      
       $ casePoint 267796945 DE
       $ Else (idIso, Block1Other)
       )

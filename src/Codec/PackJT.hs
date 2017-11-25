@@ -177,22 +177,22 @@ block1 = switch mkBlock1 cases
     cases =
       (
         casePoint 90328121 CQDX                   -- equals PlainText " CQ9DX"
-      $ Case (between 258024473 258043373, hackCQ , CQ . Just)--overlapps Plaitext
+      $ Case (between 258024473 258043373, hackCQ , CQE9)--overlapps Plaitext
       $ Case ((<= nBase    ) , callSign , CS)
-      $ casePoint (nBase + 1) (CQ Nothing)
-      $ casePoint (nBase + 2) (QRZ Nothing)
+      $ casePoint (nBase + 1) CQ
+      $ casePoint (nBase + 2) QRZ
       $ Case (between (nBase + 3) 267796944, shiftVal $ nBase +3 , CQFreq)
-      $ casePoint 267796945 (DE Nothing)
+      $ casePoint 267796945 DE
       $ Else (idIso, Block1Other)
       )
     mkBlock1 b = case b of
       CQDX            -> injectCase0 $ Right ()
-      (CQ  (Just str))-> injectCase1  $ Right str
+      CQE9 str        -> injectCase1  $ Right str
       CS cs           -> injectCase2 $ Right cs
-      (CQ Nothing)    -> injectCase3 $ Right ()
-      (QRZ Nothing)   -> injectCase4 $ Right ()
+      CQ              -> injectCase3 $ Right ()
+      QRZ             -> injectCase4 $ Right ()
       CQFreq freq     -> injectCase5 $ Right freq
-      (DE Nothing)    -> injectCase6 $ Right ()
+      DE              -> injectCase6 $ Right ()
       Block1Other uncoded -> injectCase6 $ Left uncoded
     nBase = 37*36*10*27*27*27
     hackCQ = callSign <.> mkIsoTotal fwdE9 revE9

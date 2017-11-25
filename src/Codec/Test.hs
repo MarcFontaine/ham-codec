@@ -46,11 +46,11 @@ instance Arbitrary Block1
      [
       (1 , return CQDX)
      ,(10, fmap CS $ arbitrary)
-     ,(1 , return $ CQ Nothing)
-     ,(1 , fmap (CQ . Just) $ vectorOf 2 $ choose ('A','Z') )      
-     ,(1 , return $ QRZ Nothing)
+     ,(1 , return $ CQ)
+     ,(1 , fmap CQE9 $ vectorOf 2 $ choose ('A','Z') )      
+     ,(1 , return QRZ)
      ,(1 , fmap CQFreq $ choose (0,999))
-     ,(1 , return $ DE Nothing)
+     ,(1 , return DE)
      ]
 
 instance Arbitrary Block3

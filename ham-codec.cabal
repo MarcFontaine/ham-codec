@@ -38,4 +38,6 @@ library
     , vector
     , QuickCheck
     , cabal-test-quickcheck    
+    , microlens
+    , microlens-th              
   ghc-options: -Wall -O2

@@ -59,9 +59,9 @@ instance Arbitrary Block3
       ( 10, fmap Grid $ choose (0,180*180-1))
      ,( 10, fmap Report $ choose (1,30))
      ,( 10, fmap ReportR $ choose (1,30))
-     ,(  1, return RO)
-     ,(  1, return RRR)
-     ,(  1, return R73)
+     ,(  1, return RO )
+     ,(  1, return RRR )
+     ,(  1, return R73 )
      ]
 
 isTotalIso :: Eq a => ISO a b -> a -> Bool

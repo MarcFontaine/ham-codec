@@ -185,7 +185,7 @@ block1 = switch mkBlock1 cases
       )
     mkBlock1 b = case b of
       CQDX            -> injectCase0 $ Right ()
-      CQE9 str        -> injectCase1  $ Right str
+      CQE9 str        -> injectCase1 $ Right str
       CS cs           -> injectCase2 $ Right cs
       CQ              -> injectCase3 $ Right ()
       QRZ             -> injectCase4 $ Right ()
@@ -195,37 +195,33 @@ block1 = switch mkBlock1 cases
     nBase = 37*36*10*27*27*27
     hackCQ = callSign <.> mkIsoTotal fwdE9 revE9
     fwdE9 (CallSign  (' ':'E':'9':a:b:' ':[])) = [a,b]
+    fwdE9 _ = error "fwdE9"
     revE9 [a,b] = (CallSign  $ ' ':'E':'9':a:b:' ':[])
+    revE9 _ = error "revE9"
 
 shiftVal :: Num a => a -> ISO a a
 shiftVal offset
   = mkIsoTotal (\x -> x -offset) (\x -> x + offset)
+
     
 locator :: ISO Word32 Block3
-locator = switch mkBlock3 cases
+locator = alternatives [grid,report, reportR, ro, rrr, r73, catchAll ]
   where
-    cases = 
-      ( Case ((<= ngBase)                        , idIso , Grid)
-      $ Case (between (ngBase + 1) (ngBase + 31) , shiftVal $ ngBase, Report)
-      $ Case (between (ngBase + 32) (ngBase + 61), shiftVal $ ngBase+31, ReportR)
-      $ casePoint (ngBase + 62) RO
-      $ casePoint (ngBase + 63) RRR
-      $ casePoint (ngBase + 64) R73
-      $ Else (idIso, Block3Other)
-      )
-    mkBlock3 :: Block3 -> (Either (Either (Either (Either (Either (Either
-                  Word32 () ) ()) ()) Word32) Word32) Word32)
-    mkBlock3 x = case x of
-      Grid g    -> injectCase0 $ Right g
-      Report r  -> injectCase1 $ Right r
-      ReportR r -> injectCase2 $ Right r
-      RO        -> injectCase3 $ Right ()
-      RRR       -> injectCase4 $ Right ()
-      R73       -> injectCase5 $ Right ()
-      Block3Other uncoded -> injectCase5 $ Left uncoded
-    ngBase = 180*180
-    
-             
+    grid = interval (0,base) <.> idIso <.> rightGuard Grid getGrid
+    report = interval (base +2, base + 31)
+               <.> idIso <.> oneBased <.> rightGuard Report getReport
+    reportR = interval (base +32, base + 61)
+               <.> idIso <.> oneBased <.> rightGuard ReportR getReportR
+    ro = interval (base + 62, base +62)
+               <.> option unit <.> rightEq RO
+    rrr = interval (base + 63, base +63)
+               <.> option unit <.> rightEq RRR
+    r73 = interval (base + 64, base +64)
+               <.> option unit <.> rightEq R73
+    catchAll = idIso <.> rightGuard Block3Other getBlock3Other
+    base = 180*180
+    oneBased = option $ mkIsoTotal (+1) (\x -> x - 1)
+
 message :: ISO PackedMessage Message
 message
   = pack12Words <.> checkPlainTextBit <.> eitherIso stdMsg plainText

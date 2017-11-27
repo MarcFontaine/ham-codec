@@ -7,10 +7,11 @@
 -- Maintainer  :  Marc.Fontaine@gmx.de
 -- Stability   :  experimental
 -- Portability :  GHC-only
-
+{-# Language TemplateHaskell #-}
 module Codec.MsgJT
 where
 
+import Lens.Micro.TH  
 import Data.Word
 
 newtype PlainText = PlainText {unPlainText:: String}
@@ -28,8 +29,7 @@ data Message
   deriving (Show,Eq,Ord)
     
 data Block1
-  =
-    CQDX
+  = CQDX
   | CS CallSign
   | CQ    
   | CQE9 String
@@ -46,14 +46,17 @@ data Block1
   deriving (Show,Eq,Ord)
 
 data Block3
-  = Grid Word32
-  | Report Word32
-  | ReportR Word32
+  = Grid {_getGrid :: Word32}
+  | Report {_getReport :: Word32}
+  | ReportR {_getReportR :: Word32}    
   | RO
   | RRR
   | R73
-  | Block3Other Word32
+  | Block3Other {_getBlock3Other :: Word32}
   deriving (Show,Eq,Ord)
+
+makeLenses ''Block3
+
 
 packedMessageToList :: PackedMessage -> [Word8]
 packedMessageToList

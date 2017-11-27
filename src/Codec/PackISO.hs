@@ -8,12 +8,13 @@
 -- Stability   :  experimental
 -- Portability :  GHC-only
 --
-{-# Language GADTs #-}
+{-# Language GADTs, RankNTypes #-}
 module Codec.PackISO
 where
 import Control.Monad
 import qualified Data.Map as Map
 import Data.Word
+import Lens.Micro as Lens.Micro
 
 type ES a = Either String a
 
@@ -198,3 +199,53 @@ casePoint
   :: Eq a => a -> b -> Switch a i b -> Switch a (Either i ()) b
 casePoint a p
   = Case ((==) a  , point a () , \() -> p) 
+
+option :: ISO a b -> ISO (Maybe a) (Maybe b)
+option iso = mkIso fw rv
+  where
+    fw (Just x) = fwd iso x >>= return . Just
+    fw Nothing = return Nothing
+    rv (Just x) = rev iso x >>= return . Just
+    rv Nothing = return Nothing
+
+interval :: (Ord a, Num a) => (a,a) -> ISO (Maybe a) (Maybe a)
+interval (a,b) = mkIso fw rw
+  where
+    fw Nothing = return Nothing
+    fw (Just x)  = if a <= x && x <= b
+             then return $ Just (x-a)
+             else return Nothing
+    rw Nothing  = return Nothing
+    rw (Just v) = let x'= a+v in
+       if a <= x' && x' <= b
+          then return $ Just x'
+          else return Nothing
+                    
+
+rightGuard :: ( a->b ) -> Lens.Micro.Traversal' b a -> ISO (Maybe a) (Maybe b)
+rightGuard d tr = mkIso fw rv
+  where
+    fw Nothing = return Nothing
+    fw (Just x) = return $ Just $ d x
+    rv Nothing = return Nothing
+    rv (Just x) = return $ (Lens.Micro.^?) x tr
+
+rightEq :: Eq a => a -> ISO (Maybe ()) (Maybe a)
+rightEq v = mkIso fw rv
+  where
+    fw Nothing = return Nothing
+    fw (Just ()) = return $ Just v
+    rv Nothing = return Nothing
+    rv (Just x) = if x == v
+                    then return $ Just ()
+                    else return Nothing             
+    
+alternatives :: [ISO (Maybe a) (Maybe b)] -> ISO a b
+alternatives cases = mkIso (alt fwd cases) (alt rev cases)
+  where
+    alt _   []    _ = Left "alternatives error no match"
+    alt dir (h:t) x = do
+      v <- dir h $ Just x
+      case v of
+        Just v' -> return v'
+        Nothing -> alt dir t x

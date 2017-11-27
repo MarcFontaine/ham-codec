@@ -30,19 +30,19 @@ data Message
     
 data Block1
   = CQDX
-  | CS CallSign
+  | CS {_getCS :: CallSign}
   | CQ    
-  | CQE9 String
+  | CQE9 {_getCQE9 :: String}
   | CQPrefix String
   | CQSuffix String
   | QRZ
   | QRZPrefix String
   | QRZSuffix String
-  | CQFreq Word32
+  | CQFreq {_getCQFreq :: Word32}
   | DE
   | DEPrefix String
   | DESuffix String   
-  | Block1Other Word32
+  | Block1Other {_getBlock1Other :: Word32}
   deriving (Show,Eq,Ord)
 
 data Block3
@@ -56,8 +56,8 @@ data Block3
   deriving (Show,Eq,Ord)
 
 makeLenses ''Block3
-
-
+makeLenses ''Block1
+           
 packedMessageToList :: PackedMessage -> [Word8]
 packedMessageToList
   (b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11)

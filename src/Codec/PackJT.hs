@@ -170,29 +170,19 @@ between :: Word32 -> Word32 -> Word32 -> Bool
 between a b x = a <= x && x <= b               
 
 block1 :: ISO Word32 Block1
-block1 = switch mkBlock1 cases
+block1 = alternatives [
+   altPoint 90328121 CQDX
+  ,interval (258024473,258043373) <.> (option $ shiftVal 258024473 )
+     <.> option hackCQ <.> rightGuard CQE9 getCQE9  --overlapps Plaintext
+  ,interval (0,base) <.> option callSign <.> rightGuard CS getCS
+  ,altPoint (base + 1) CQ
+  ,altPoint (base + 2) QRZ
+  ,interval (base + 3, base + 1003) <.> idIso <.> rightGuard CQFreq getCQFreq
+  ,altPoint 267796945 DE
+  ,option idIso <.> rightGuard Block1Other getBlock1Other  
+  ]
   where
-    cases =
-      (
-        casePoint 90328121 CQDX                   -- equals PlainText " CQ9DX"
-      $ Case (between 258024473 258043373, hackCQ , CQE9)--overlapps Plaintext
-      $ Case ((<= nBase    ) , callSign , CS)
-      $ casePoint (nBase + 1) CQ
-      $ casePoint (nBase + 2) QRZ
-      $ Case (between (nBase + 3) (nBase + 1003), shiftVal $ nBase +3 , CQFreq)      
-      $ casePoint 267796945 DE
-      $ Else (idIso, Block1Other)
-      )
-    mkBlock1 b = case b of
-      CQDX            -> injectCase0 $ Right ()
-      CQE9 str        -> injectCase1 $ Right str
-      CS cs           -> injectCase2 $ Right cs
-      CQ              -> injectCase3 $ Right ()
-      QRZ             -> injectCase4 $ Right ()
-      CQFreq freq     -> injectCase5 $ Right freq
-      DE              -> injectCase6 $ Right ()
-      Block1Other uncoded -> injectCase6 $ Left uncoded
-    nBase = 37*36*10*27*27*27
+    base = 37*36*10*27*27*27
     hackCQ = callSign <.> mkIsoTotal fwdE9 revE9
     fwdE9 (CallSign  (' ':'E':'9':a:b:' ':[])) = [a,b]
     fwdE9 _ = error "fwdE9"
@@ -201,26 +191,25 @@ block1 = switch mkBlock1 cases
 
 shiftVal :: Num a => a -> ISO a a
 shiftVal offset
-  = mkIsoTotal (\x -> x -offset) (\x -> x + offset)
+  = mkIsoTotal (\x -> x  + offset) (\x -> x - offset)
 
     
 locator :: ISO Word32 Block3
-locator = alternatives [grid,report, reportR, ro, rrr, r73, catchAll ]
-  where
-    grid = interval (0,base) <.> idIso <.> rightGuard Grid getGrid
-    report = interval (base +2, base + 31)
-               <.> idIso <.> oneBased <.> rightGuard Report getReport
-    reportR = interval (base +32, base + 61)
+locator = alternatives
+   [
+     interval (0,base) <.> idIso <.> rightGuard Grid getGrid
+    ,interval (base +2, base + 31)
+        <.> idIso <.> oneBased <.> rightGuard Report getReport
+    ,interval (base +32, base + 61)
                <.> idIso <.> oneBased <.> rightGuard ReportR getReportR
-    ro = interval (base + 62, base +62)
-               <.> option unit <.> rightEq RO
-    rrr = interval (base + 63, base +63)
-               <.> option unit <.> rightEq RRR
-    r73 = interval (base + 64, base +64)
-               <.> option unit <.> rightEq R73
-    catchAll = idIso <.> rightGuard Block3Other getBlock3Other
+    ,altPoint (base + 62) RO
+    ,altPoint (base + 63) RRR
+    ,altPoint (base + 64) R73
+    ,idIso <.> rightGuard Block3Other getBlock3Other
+    ]
+  where
     base = 180*180
-    oneBased = option $ mkIsoTotal (+1) (\x -> x - 1)
+    oneBased = option $ shiftVal 1
 
 message :: ISO PackedMessage Message
 message

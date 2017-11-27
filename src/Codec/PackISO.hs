@@ -60,7 +60,7 @@ nil = mkIso
   (\x -> if x==0 then return [] else fwdError "nil not 0")
   (\[] -> return 0)
 
-unit :: ISO Word32 ()
+unit :: (Eq a, Num a) => ISO a ()
 unit = mkIso
   (\x -> if x==0 then return () else fwdError "unit not 0")
   (\() -> return 0)
@@ -153,52 +153,9 @@ ifte  (cond,t) e = mkIso fw bw
     bw (Left x) = rev e x
     bw (Right x) = rev t x
 
-injectCase0 :: x -> x
-injectCase0 = id
-injectCase1 :: a -> Either a b
-injectCase1 = Left
-injectCase2 :: a -> Either (Either a b1) b2
-injectCase2 = Left . injectCase1
-injectCase3 :: a -> Either (Either (Either a b1) b2) b3
-injectCase3 = Left . injectCase2
-injectCase4 :: a -> Either (Either (Either (Either a b1) b2) b3) b4
-injectCase4 = Left . injectCase3
-injectCase5 :: a -> Either (Either (Either (Either (Either a b1) b2) b3) b4) b5
-injectCase5 = Left . injectCase4
-injectCase6
-  :: a -> Either (Either (Either (Either (Either (Either a b1) b2) b3) b4) b5) b6
-injectCase6 = Left . injectCase5
-
-data Switch a i b where
-  Case :: (a -> Bool , ISO a c , c -> b) -> Switch a i b
-          -> Switch a (Either i c)  b
-  Else :: (ISO a c , c -> b) -> Switch a c b
-
-switchForward :: Switch a i b -> a -> ES b
-switchForward sw x = case sw of
-  Else (iso, inj) -> fwd iso x >>= return . inj
-  Case (cond , iso , inj) rest
-    -> if cond x
-          then fwd iso x >>= return . inj
-          else switchForward rest x
-
-switchReverse :: Switch a i b -> i -> ES a
-switchReverse sw x = case sw of
-  Else (iso, _ ) -> rev iso x
-  Case (cond , iso , _ ) rest -> case x of
-    Left x' -> switchReverse rest x'
-    Right v -> do
-      a <- rev iso v
-      if cond a then return a else revError "rev switchReverse"
-
-switch :: (b -> i) ->  Switch a i b -> ISO a b
-switch f sw
-  = mkIso (switchForward sw) (switchReverse sw . f)
-
-casePoint
-  :: Eq a => a -> b -> Switch a i b -> Switch a (Either i ()) b
-casePoint a p
-  = Case ((==) a  , point a () , \() -> p) 
+altPoint :: (Num a, Ord a, Eq b) => a -> b -> ISO (Maybe a) (Maybe b)
+altPoint c v
+  = interval (c,c) <.> option unit <.> rightEq v
 
 option :: ISO a b -> ISO (Maybe a) (Maybe b)
 option iso = mkIso fw rv
@@ -208,7 +165,7 @@ option iso = mkIso fw rv
     rv (Just x) = rev iso x >>= return . Just
     rv Nothing = return Nothing
 
-interval :: (Ord a, Num a) => (a,a) -> ISO (Maybe a) (Maybe a)
+interval :: (Num a, Ord a) => (a,a) -> ISO (Maybe a) (Maybe a)
 interval (a,b) = mkIso fw rw
   where
     fw Nothing = return Nothing

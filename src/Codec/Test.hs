@@ -51,6 +51,29 @@ instance Arbitrary Block1
      ,(1 , return QRZ)
      ,(1 , fmap CQFreq $ choose (0,999))
      ,(1 , return DE)
+     ,(1 , fmap CQPrefix $ arbPrefix )
+     ,(1 , fmap QRZPrefix $ arbPrefix )
+     ,(1 , fmap DEPrefix $ arbPrefix )
+     ,(1 , fmap CQSuffix $ arbSuffix )
+     ,(1 , fmap QRZSuffix $ arbSuffix )
+     ,(1 , fmap DESuffix $ arbSuffix )
+     ]
+
+arbPrefix :: Gen String
+arbPrefix 
+  = mapM elements
+     [ alphaNumChar
+     , alphaNumBlankChar
+     , alphaNumBlankChar   
+     , alphaNumBlankChar
+     ]
+
+arbSuffix :: Gen String
+arbSuffix
+  = mapM elements
+     [ alphaNumChar
+     , alphaNumBlankChar
+     , alphaNumBlankChar   
      ]
 
 instance Arbitrary Block3

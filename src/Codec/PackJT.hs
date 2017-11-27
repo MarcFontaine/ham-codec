@@ -178,6 +178,18 @@ block1 = alternatives [
   ,altPoint (base + 1) CQ
   ,altPoint (base + 2) QRZ
   ,interval (base + 3, base + 1003) <.> idIso <.> rightGuard CQFreq getCQFreq
+  ,interval (262178563 ,264002071) <.> option prefix
+     <.> rightGuard CQPrefix getCQPrefix
+  ,interval (264002072 , 265825580) <.> option prefix
+     <.> rightGuard QRZPrefix getQRZPrefix
+  ,interval (265825581 , 267649089) <.> option prefix
+     <.> rightGuard DEPrefix getDEPrefix
+  ,interval (267649090 , 267698374) <.> option suffix
+     <.> rightGuard CQSuffix getCQSuffix
+  ,interval (267698375 , 267747659) <.> option suffix
+     <.> rightGuard QRZSuffix getQRZSuffix
+  ,interval (267747660 , 267796944) <.> option suffix
+     <.> rightGuard DESuffix getDESuffix   
   ,altPoint 267796945 DE
   ,option idIso <.> rightGuard Block1Other getBlock1Other  
   ]
@@ -188,6 +200,23 @@ block1 = alternatives [
     fwdE9 _ = error "fwdE9"
     revE9 [a,b] = (CallSign  $ ' ':'E':'9':a:b:' ':[])
     revE9 _ = error "revE9"
+
+prefix :: ISO Word32 String 
+prefix =
+  ( modDivChar 37 isoAlphaNumBlank
+  $ modDivChar 37 isoAlphaNumBlank
+  $ modDivChar 37 isoAlphaNumBlank
+  $ modDivChar 37 isoAlphaNum nil
+  ) <.> reverseIso
+
+suffix :: ISO Word32 String 
+suffix =
+  ( modDivChar 37 isoAlphaNumBlank
+  $ modDivChar 37 isoAlphaNumBlank
+  $ modDivChar 37 isoAlphaNum nil
+  ) <.> reverseIso
+
+
 
 shiftVal :: Num a => a -> ISO a a
 shiftVal offset

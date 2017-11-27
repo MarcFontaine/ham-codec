@@ -33,15 +33,15 @@ data Block1
   | CS {_getCS :: CallSign}
   | CQ    
   | CQE9 {_getCQE9 :: String}
-  | CQPrefix String
-  | CQSuffix String
+  | CQPrefix {_getCQPrefix :: String}
+  | CQSuffix {_getCQSuffix :: String}
   | QRZ
-  | QRZPrefix String
-  | QRZSuffix String
+  | QRZPrefix {_getQRZPrefix :: String}
+  | QRZSuffix {_getQRZSuffix :: String}
   | CQFreq {_getCQFreq :: Word32}
   | DE
-  | DEPrefix String
-  | DESuffix String   
+  | DEPrefix {_getDEPrefix :: String}
+  | DESuffix {_getDESuffix :: String}
   | Block1Other {_getBlock1Other :: Word32}
   deriving (Show,Eq,Ord)
 

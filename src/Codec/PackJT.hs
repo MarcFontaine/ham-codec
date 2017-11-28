@@ -226,11 +226,15 @@ shiftVal offset
 locator :: ISO Word32 Block3
 locator = alternatives
    [
-     interval (0,base) <.> idIso <.> rightGuard Grid getGrid
+     interval (0,base) <.> option splitGrid <.> mkIso kaFw kaRev
+        <.> toReport <.> rightGuard ExtReport getExtReport
+    ,interval (0,base) <.> option splitGrid <.> mkIso laFw laRev
+        <.> toReport <.> rightGuard ExtReportR getExtReportR
+    ,interval (0,base) <.> (option $ modDiv 180) <.> rightGuard Grid getGrid
     ,interval (base +2, base + 31)
-        <.> idIso <.> oneBased <.> rightGuard Report getReport
+        <.> oneBased <.> rightGuard Report getReport
     ,interval (base +32, base + 61)
-               <.> idIso <.> oneBased <.> rightGuard ReportR getReportR
+               <.> oneBased <.> rightGuard ReportR getReportR
     ,altPoint (base + 62) RO
     ,altPoint (base + 63) RRR
     ,altPoint (base + 64) R73
@@ -239,6 +243,19 @@ locator = alternatives
   where
     base = 180*180
     oneBased = option $ shiftVal 1
+    splitGrid = modDiv 180 <.> pair (modDiv 10) (modDiv 10)
+
+    kaFw (Just ((x,0),(y,7))) = return $ Just (x,y)
+    kaFw _ = return $ Nothing
+    kaRev (Just (x,y)) = return $ Just ((x,0),(y,7))
+    kaRev _ = return $ Nothing
+    laFw (Just ((x,0),(y,6))) = return $ Just (x,y)
+    laFw _ = return $ Nothing
+    laRev (Just (x,y)) = return $ Just ((x,0),(y,6))
+    laRev _ = return $ Nothing
+    toReport = option $ mkIsoTotal repFw repRev
+    repFw (x,y) = 40 + (fromIntegral x) - (fromIntegral y) *10
+    repRev x = (fromIntegral $ x `mod` 10, fromIntegral $ 4- (x `div` 10))
 
 message :: ISO PackedMessage Message
 message

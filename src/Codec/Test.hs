@@ -79,12 +79,15 @@ arbSuffix
 instance Arbitrary Block3
   where
     arbitrary = frequency [
-      ( 10, fmap Grid $ choose (0,180*180-1))
-     ,( 10, fmap Report $ choose (1,30))
-     ,( 10, fmap ReportR $ choose (1,30))
+      -- stay away from South pole !
+      ( 10, fmap Grid $ (,) <$> choose (10,179) <*> choose (0,179))      
+     ,(  1, fmap Report $ choose (1,30))
+     ,(  1, fmap ReportR $ choose (1,30))
      ,(  1, return RO )
      ,(  1, return RRR )
      ,(  1, return R73 )
+     ,(  1, fmap ExtReport $ choose (-50,49))
+     ,(  1, fmap ExtReportR $ choose (-50,49))            
      ]
 
 isTotalIso :: Eq a => ISO a b -> a -> Bool

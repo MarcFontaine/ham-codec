@@ -46,12 +46,14 @@ data Block1
   deriving (Show,Eq,Ord)
 
 data Block3
-  = Grid {_getGrid :: Word32}
+  = Grid {_getGrid :: (Word32, Word32)}
   | Report {_getReport :: Word32}
   | ReportR {_getReportR :: Word32}    
   | RO
   | RRR
   | R73
+  | ExtReport  {_getExtReport :: Int}
+  | ExtReportR {_getExtReportR :: Int}    
   | Block3Other {_getBlock3Other :: Word32}
   deriving (Show,Eq,Ord)
 

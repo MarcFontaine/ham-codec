@@ -1,5 +1,5 @@
 name:          ham-codec
-version:       0.1.0
+version:       0.1.1
 
 author:        Marc.Fontaine@gmx.de
 maintainer:    Marc.Fontaine@gmx.de
@@ -7,7 +7,7 @@ maintainer:    Marc.Fontaine@gmx.de
 category:      HAM, JT65
 synopsis:      the JT65 codec
 description:
-  A fun pure Haskell implementation of the JT65 codec.
+  A Haskell implementation of the JT65 codec.
             
 license:       BSD3
 license-file:  LICENSE

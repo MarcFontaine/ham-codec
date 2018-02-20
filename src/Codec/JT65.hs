@@ -10,6 +10,7 @@
 
 module Codec.JT65
 where
+import Data.Function ((&))
 import Data.Time
 import Data.Word
 import Data.Bits
@@ -18,20 +19,43 @@ import qualified Data.Array as Array
 import Data.Array (Array)
 import Data.Tuple (swap)
 import Codec.PackJTExtern
-
+import Codec.MsgJT
+import Codec.PackJT (message)
+import Codec.PackISO (rev)
 type Frequency = Rational
 
+-- | jt65AEncodeExtern calls the extern jt65code binary
 jt65AEncodeExtern :: String -> IO [Frequency]
 jt65AEncodeExtern input = do
   (_,symbols) <- callJT65Code input
   return $ encodeSymbols symbols
 
+-- | redirects to jt65AEncodeExtern
 jt65AEncode :: String -> IO [Frequency]
-jt65AEncode= jt65AEncodeExtern
+jt65AEncode = jt65AEncodeExtern
+
+-- | Built-in JT65 codec
+jt65AEncodeIntern :: String -> [Frequency]
+jt65AEncodeIntern msg
+  = msg & toMessage     --
+        & rev message   -- Either Error PackedMessage
+        & throwErr
+        & packedMessageToList -- [Word8]
+        & encodeRS
+        & interleaveSymbols Forward
+        & map (grayCode Forward)
+        & encodeSymbols
+  where
+-- JT65.PackJT supports all other JT65 message types
+-- todo: add mapping of string to message type
+    toMessage msg
+      = PlainTextMessage $ PlainText $ take 13 (msg ++ "           ")
+    throwErr (Right t) = t
+    throwErr (Left msg) = error msg
+
 encodeSymbols :: [Word8] -> [Frequency]
 encodeSymbols l
   = map (toFrequency A) $ mixinSync l
-
 
 -- todo fix this refactor 
 jt65ASchedule :: String -> IO [(DiffTime,Frequency)]
@@ -56,6 +80,7 @@ jt65SymbolStartTimes = take 126 $ map fromRational [0 , (4096 % 11025) ..]
 data Symbol = Sync | Tone Word8
   deriving (Show,Eq)
 
+-- | Mix 63 symbols with the master sync vector
 mixinSync :: [Word8] -> [Symbol]
 mixinSync l = worker jt65MasterSyncVector l
   where
@@ -84,7 +109,6 @@ toFrequency mode sym = case sym of
       A -> 1
       B -> 2
       C -> 4
-
 
 data Direction = Forward | Reverse
   deriving (Show,Eq)

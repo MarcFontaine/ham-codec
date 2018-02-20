@@ -1,3 +1,15 @@
+----------------------------------------------------------------------------
+-- |
+-- Module      :  Codec.AFSK
+-- Copyright   :  (c) Marc Fontaine 2017
+-- License     :  BSD3
+-- 
+-- Maintainer  :  Marc.Fontaine@gmx.de
+-- Stability   :  experimental
+-- Portability :  GHC-only
+--
+-- TODO : USE ANTI-ALIASING !
+
 module Codec.AFSK
 where
 
@@ -36,6 +48,8 @@ ramps rate frequency inPhase count = (outPhase,vec)
 
 -}
 
+-- | TODO: SHOULD/MUST use some form of anti-aliasing!
+-- This is the naive way to do it (not the correct way)
 afsk :: Int -> [(Rational,Int)] -> AF
 afsk rate tones
   = Vector.map (\p -> sin (pi2*p)) $ accumRamps rate tones

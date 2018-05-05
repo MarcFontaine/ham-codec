@@ -31,17 +31,17 @@ import Data.Bits
 import Codec.PackISO
 import Codec.MsgJT
 
-numChar:: [Char]
+numChar:: String
 numChar = ['0'..'9']
-alphaChar :: [Char]
+alphaChar :: String
 alphaChar = ['A'..'Z']
-alphaBlankChar :: [Char]
+alphaBlankChar :: String
 alphaBlankChar = ['A'..'Z'] ++ " "
-alphaNumChar :: [Char]
+alphaNumChar :: String
 alphaNumChar = ['0'..'9'] ++ ['A'..'Z']
-alphaNumBlankChar :: [Char]
+alphaNumBlankChar :: String
 alphaNumBlankChar =  ['0'..'9'] ++ ['A'..'Z'] ++ " "
-plainTextChar :: [Char]
+plainTextChar :: String
 plainTextChar = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ +-./?"
 
 isoNum :: ISO Word32 Char
@@ -80,7 +80,7 @@ moveBits = (fw, bw)
         where
           b1 = if testBit nc1 0 then 0x08000 else 0
           b2 = if testBit nc2 0 then 0x10000 else 0
-          save = (ng .&. 0xFFFF8000 == 0)
+          save = ng .&. 0xFFFF8000 == 0
     bw (nc1,nc2,ng)
        = if save
             then return (2 * nc1 + b1, 2 * nc2 + b2, ng .&. 0x7fff)
@@ -88,8 +88,8 @@ moveBits = (fw, bw)
          where  
            b1 = if testBit ng 15 then 1 else 0
            b2 = if testBit ng 16 then 1 else 0
-           save =     (not $ testBit nc1 31)
-                   && (not $ testBit nc2 31)
+           save =     not (testBit nc1 31)
+                   && not (testBit nc2 31)
                    && (ng .&. 0xfffe0000 == 0)
 
 pack12Words :: ISO PackedMessage (Word32,Word32,Word32)
@@ -103,7 +103,7 @@ pack12Words
       )
     bw (nc1,nc2,ng)
       = if not save then revError (show ("pack12Words bw",(nc1,nc2,ng)))
-        else return $                                 
+        else return
       ( sr nc1 22
       , sr nc1 16
       , sr nc1 10
@@ -120,7 +120,7 @@ pack12Words
               && (nc2 .&. 0xF0000000) == 0
               && (ng  .&. 0xFFFF0000) == 0
     sr x n = fromIntegral (shiftR x n .&. 63)
-    sl x n = shiftL (fromIntegral x) n
+    sl x = shiftL (fromIntegral x)
     
 plainTextSplit :: ISO (String,String,String) PlainText
 plainTextSplit = (fw,bw)
@@ -196,9 +196,9 @@ block1 = alternatives [
   where
     base = 37*36*10*27*27*27
     hackCQ = callSign <.> mkIsoTotal fwdE9 revE9
-    fwdE9 (CallSign  (' ':'E':'9':a:b:' ':[])) = [a,b]
+    fwdE9 (CallSign  [' ','E','9',a,b,' ']) = [a,b]
     fwdE9 _ = error "fwdE9"
-    revE9 [a,b] = (CallSign  $ ' ':'E':'9':a:b:' ':[])
+    revE9 [a,b] = CallSign  [' ','E','9',a,b,' ']
     revE9 _ = error "revE9"
 
 prefix :: ISO Word32 String 
@@ -220,7 +220,7 @@ suffix =
 
 shiftVal :: Num a => a -> ISO a a
 shiftVal offset
-  = mkIsoTotal (\x -> x  + offset) (\x -> x - offset)
+  = mkIsoTotal (+ offset) (\x -> x - offset)
 
     
 locator :: ISO Word32 Block3
@@ -230,7 +230,7 @@ locator = alternatives
         <.> toReport <.> rightGuard ExtReport getExtReport
     ,interval (0,base) <.> option splitGrid <.> mkIso laFw laRev
         <.> toReport <.> rightGuard ExtReportR getExtReportR
-    ,interval (0,base) <.> (option $ modDiv 180) <.> rightGuard Grid getGrid
+    ,interval (0,base) <.> option (modDiv 180) <.> rightGuard Grid getGrid
     ,interval (base +2, base + 31)
         <.> oneBased <.> rightGuard Report getReport
     ,interval (base +32, base + 61)
@@ -246,15 +246,15 @@ locator = alternatives
     splitGrid = modDiv 180 <.> pair (modDiv 10) (modDiv 10)
 
     kaFw (Just ((x,0),(y,7))) = return $ Just (x,y)
-    kaFw _ = return $ Nothing
+    kaFw _ = return Nothing
     kaRev (Just (x,y)) = return $ Just ((x,0),(y,7))
-    kaRev _ = return $ Nothing
+    kaRev _ = return Nothing
     laFw (Just ((x,0),(y,6))) = return $ Just (x,y)
-    laFw _ = return $ Nothing
+    laFw _ = return Nothing
     laRev (Just (x,y)) = return $ Just ((x,0),(y,6))
-    laRev _ = return $ Nothing
+    laRev _ = return Nothing
     toReport = option $ mkIsoTotal repFw repRev
-    repFw (x,y) = 40 + (fromIntegral x) - (fromIntegral y) *10
+    repFw (x,y) = 40 + fromIntegral x - fromIntegral y *10
     repRev x = (fromIntegral $ x `mod` 10, fromIntegral $ 4- (x `div` 10))
 
 message :: ISO PackedMessage Message
@@ -264,10 +264,10 @@ message
  where
    stdMsg = tripple block1 block1 locator
 
-   toMsg :: (Either (Block1, Block1, Block3) PlainText) -> Message
+   toMsg :: Either (Block1, Block1, Block3) PlainText -> Message
    toMsg (Left (b1,b2,b3) ) = Blocks b1 b2 b3
    toMsg (Right t) = PlainTextMessage t
 
-   fromMsg :: Message -> (Either (Block1, Block1, Block3) PlainText)
+   fromMsg :: Message -> Either (Block1, Block1, Block3) PlainText
    fromMsg (Blocks b1 b2 b3) = Left (b1,b2,b3)
    fromMsg (PlainTextMessage t) = Right t

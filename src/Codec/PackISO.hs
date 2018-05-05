@@ -14,7 +14,7 @@ where
 import Control.Monad
 import qualified Data.Map as Map
 import Data.Word
-import Lens.Micro as Lens.Micro
+import Lens.Micro
 
 type ES a = Either String a
 
@@ -40,10 +40,10 @@ mkIsoTotal :: (a -> b) -> (b -> a) -> ISO a b
 mkIsoTotal x y = (return . x, return . y)
 
 fwdError :: String -> ES x
-fwdError msg = Left msg
+fwdError = Left
 
 revError :: String -> ES x
-revError msg = Left msg
+revError = Left
 
 -- | Identity isomorphism.
 idIso :: ISO a a
@@ -75,7 +75,7 @@ chain (ff, fb) (gf, gb)
 (<.>) = chain
 
 
-charIso :: [Char] -> ISO Word32 Char
+charIso :: String -> ISO Word32 Char
 charIso chars = mkIso fw bw
   where
     fw x = case Map.lookup x fwMap of
@@ -102,10 +102,10 @@ pair (f1,b1) (f2,b2) = mkIso fp bp
 eitherIso :: ISO a b -> ISO c d -> ISO (Either a c) (Either b d)
 eitherIso (fl,bl) (fr,br) = mkIso fp bp
   where
-    fp (Left l) = fl l >>= return . Left
-    fp (Right r) = fr r  >>= return . Right
-    bp (Left l) = bl l >>= return . Left
-    bp (Right r) = br r >>= return . Right
+    fp (Left l) = Left <$> fl l
+    fp (Right r) = Right <$> fr r
+    bp (Left l) = Left <$> bl l
+    bp (Right r) = Right <$> br r
 
 tripple :: ISO a b -> ISO c d -> ISO e f -> ISO (a,c,e) (b,d,f)
 tripple (f1,b1) (f2,b2) (f3,b3) = (fp,bp)
@@ -139,17 +139,17 @@ concChar = (fw,bw)
 modDivChar :: Word32 -> ISO Word32 Char
          -> ISO Word32 String -> ISO Word32 String
 modDivChar n chrCoder rest
-  = modDiv n <.> (pair chrCoder rest)  <.> concChar
+  = modDiv n <.> pair chrCoder rest  <.> concChar
 
 reverseIso :: ISO String String
 reverseIso = (return . reverse, return . reverse)
 
-ifte :: ((a -> Bool), ISO a b) -> (ISO a c) -> ISO a (Either c b)
+ifte :: ((a -> Bool), ISO a b) -> ISO a c -> ISO a (Either c b)
 ifte  (cond,t) e = mkIso fw bw
   where
     fw x = if cond x
-              then fwd t x >>= return . Right
-              else fwd e x >>= return . Left
+              then Right <$> fwd t x
+              else Left <$> fwd e x
     bw (Left x) = rev e x
     bw (Right x) = rev t x
 
@@ -160,9 +160,9 @@ altPoint c v
 option :: ISO a b -> ISO (Maybe a) (Maybe b)
 option iso = mkIso fw rv
   where
-    fw (Just x) = fwd iso x >>= return . Just
+    fw (Just x) = Just <$> fwd iso x
     fw Nothing = return Nothing
-    rv (Just x) = rev iso x >>= return . Just
+    rv (Just x) = Just <$> rev iso x
     rv Nothing = return Nothing
 
 interval :: (Num a, Ord a) => (a,a) -> ISO (Maybe a) (Maybe a)

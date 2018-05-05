@@ -48,10 +48,10 @@ jt65AEncodeIntern msg
   where
 -- JT65.PackJT supports all other JT65 message types
 -- todo: add mapping of string to message type
-    toMessage msg
-      = PlainTextMessage $ PlainText $ take 13 (msg ++ "           ")
+    toMessage str
+      = PlainTextMessage $ PlainText $ take 13 (str ++ "           ")
     throwErr (Right t) = t
-    throwErr (Left msg) = error msg
+    throwErr (Left err) = error err
 
 encodeSymbols :: [Word8] -> [Frequency]
 encodeSymbols l

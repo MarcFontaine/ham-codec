@@ -1,17 +1,14 @@
-{-# Language TemplateHaskell #-}
 module Codec.Test
 where
 import Data.Maybe
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
-import Distribution.TestSuite.QuickCheck
 
 import Codec.JT65
 import Codec.MsgJT
 import Codec.PackJT
 import Codec.PackISO
 import Codec.PackJTExtern
-import Codec.MsgJT
 
 instance Arbitrary PlainText
   where
@@ -19,7 +16,7 @@ instance Arbitrary PlainText
 
 instance Arbitrary CallSign
   where
-    arbitrary = fmap CallSign $ flip suchThat (isNotE9) $ mapM elements
+    arbitrary = fmap CallSign $ flip suchThat isNotE9 $ mapM elements
      [ alphaNumBlankChar
      , alphaNumChar
      , numChar
@@ -36,7 +33,7 @@ instance Arbitrary CallSign
 instance Arbitrary Message
   where
     arbitrary = frequency [
-      (  1, fmap PlainTextMessage $ arbitrary)
+      (  1, PlainTextMessage <$> arbitrary)
      ,( 10, Blocks <$> arbitrary <*> arbitrary <*> arbitrary)
      ]
 
@@ -45,18 +42,18 @@ instance Arbitrary Block1
     arbitrary = frequency
      [
       (1 , return CQDX)
-     ,(10, fmap CS $ arbitrary)
-     ,(1 , return $ CQ)
-     ,(1 , fmap CQE9 $ vectorOf 2 $ choose ('A','Z') )      
+     ,(10, CS <$> arbitrary)
+     ,(1 , return CQ)
+     ,(1 , CQE9 <$> (vectorOf 2 $ choose ('A','Z')) )      
      ,(1 , return QRZ)
-     ,(1 , fmap CQFreq $ choose (0,999))
+     ,(1 , CQFreq <$> choose (0,999))
      ,(1 , return DE)
-     ,(1 , fmap CQPrefix $ arbPrefix )
-     ,(1 , fmap QRZPrefix $ arbPrefix )
-     ,(1 , fmap DEPrefix $ arbPrefix )
-     ,(1 , fmap CQSuffix $ arbSuffix )
-     ,(1 , fmap QRZSuffix $ arbSuffix )
-     ,(1 , fmap DESuffix $ arbSuffix )
+     ,(1 , CQPrefix  <$> arbPrefix )
+     ,(1 , QRZPrefix <$> arbPrefix )
+     ,(1 , DEPrefix  <$> arbPrefix )
+     ,(1 , CQSuffix  <$> arbSuffix )
+     ,(1 , QRZSuffix <$> arbSuffix )
+     ,(1 , DESuffix  <$> arbSuffix )
      ]
 
 arbPrefix :: Gen String
@@ -81,13 +78,13 @@ instance Arbitrary Block3
     arbitrary = frequency [
       -- stay away from South pole !
       ( 10, fmap Grid $ (,) <$> choose (10,179) <*> choose (0,179))      
-     ,(  1, fmap Report $ choose (1,30))
-     ,(  1, fmap ReportR $ choose (1,30))
+     ,(  1, Report     <$> choose (1,30))
+     ,(  1, ReportR    <$> choose (1,30))
      ,(  1, return RO )
      ,(  1, return RRR )
      ,(  1, return R73 )
-     ,(  1, fmap ExtReport $ choose (-50,49))
-     ,(  1, fmap ExtReportR $ choose (-50,49))            
+     ,(  1, ExtReport  <$> choose (-50,49))
+     ,(  1, ExtReportR <$> choose (-50,49))            
      ]
 
 isTotalIso :: Eq a => ISO a b -> a -> Bool
@@ -136,7 +133,7 @@ testDecode str = do
   print $ fwd message sc
   return sc
   
-
+{-
 tests :: IO [Test]
 tests = return [
    testProperty "prop_plainTextSplit" prop_plainTextSplit
@@ -148,9 +145,11 @@ tests = return [
   ,testProperty "prop_roundTripMessage" prop_roundTripMessage
   ]
 
+
 return []
 runTests = $quickCheckAll
 runTests :: IO Bool
 
 runTestsV :: IO Bool
 runTestsV = $verboseCheckAll
+-}

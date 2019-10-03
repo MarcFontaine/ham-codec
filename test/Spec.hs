@@ -1,15 +1,16 @@
 import Test.Hspec
+import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 import Codec.Test
 
 main :: IO ()
 main = hspec $ do
   describe "ham codec jt65" $ do
-    it "prop_plainTextSplit" $ property prop_plainTextSplit
-    it "prop_plainText"      $ property prop_plainText
-    it "prop_callSign"       $ property prop_callSign
-    it "prop_block1"         $ property prop_block1
-    it "prop_locator"        $ property prop_locator
-    it "prop_message"        $ property prop_message
-    it "prop_roundTripMessage" $ property prop_roundTripMessage
+    prop "plainTextSplit" $ prop_plainTextSplit
+    prop "plainText"      $ prop_plainText
+    prop "callSign"       $ prop_callSign
+    prop "block1"         $ prop_block1
+    prop "locator"        $ prop_locator
+    prop "message"        $ prop_message
+    prop "roundTripMessage" $ prop_roundTripMessage
 
